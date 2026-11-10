@@ -1,4 +1,5 @@
-﻿using Silk.NET.OpenGL;
+﻿using Silk.NET.Input;
+using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using System.Numerics;
 
@@ -14,6 +15,15 @@ namespace Szeminarium1
 
         private static uint[] vaos = new uint[27];
         private static Matrix4x4[] models = new Matrix4x4[27];
+
+        private static IKeyboard keyboard;
+        private static Vector3 camPos = new Vector3(8f, 5f, 4f);
+        private static float yaw = -2.68f;
+        private static float pitch = -0.51f;
+        private static bool[] inSlice = new bool[27];
+        private static float sliceAngle = 0f;
+        private static float sliceTarget = 0f;
+
         private static uint indexCount;
 
         private static readonly string VertexShaderSource = @"
@@ -24,13 +34,14 @@ namespace Szeminarium1
         uniform mat4 uModel;
         uniform mat4 uView;
         uniform mat4 uProjection;
+        uniform mat4 uSlice;
 
 		out vec4 outCol;
         
         void main()
         {
 			outCol = vCol;
-            gl_Position = uProjection * uView * uModel * vec4(vPos.x, vPos.y, vPos.z, 1.0);
+            gl_Position = uProjection * uView * uSlice * uModel * vec4(vPos.x, vPos.y, vPos.z, 1.0);
         }
         ";
 
@@ -50,7 +61,7 @@ namespace Szeminarium1
         static void Main(string[] args)
         {
             WindowOptions windowOptions = WindowOptions.Default;
-            windowOptions.Title = "2-1 - 3D kocka";
+            windowOptions.Title = "2-2 - rubik kocka";
             windowOptions.Size = new Silk.NET.Maths.Vector2D<int>(500, 500);
 
             graphicWindow = Window.Create(windowOptions);
@@ -78,6 +89,10 @@ namespace Szeminarium1
         private static unsafe void GraphicWindow_Load()
         {
             Gl = graphicWindow.CreateOpenGL();
+
+            IInputContext input = graphicWindow.CreateInput();
+            keyboard = input.Keyboards[0];
+            keyboard.KeyDown += Keyboard_KeyDown;
 
             Gl.ClearColor(System.Drawing.Color.White);
             CheckError("ClearColor");
@@ -115,12 +130,8 @@ namespace Szeminarium1
             //melyseg teszt ami a kozelebbi lap takarja a tavolabbit
             Gl.Enable(EnableCap.DepthTest);
 
-            //kamera es projekcio fix ertekkel
             Gl.UseProgram(program);
-            Vector3 kameraHely = new Vector3(8f, 5f, 4f);
-            Matrix4x4 view = Matrix4x4.CreateLookAt(kameraHely, Vector3.Zero, Vector3.UnitY);
             Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 4f, 1f, 0.1f, 100f);
-            Gl.UniformMatrix4(Gl.GetUniformLocation(program, "uView"), 1, false, (float*)&view);
             Gl.UniformMatrix4(Gl.GetUniformLocation(program, "uProjection"), 1, false, (float*)&projection);
             CheckError("kamera es projekcio");
             //egy kis kocka modellje 6 lap x 4 csucs azaz mind a 27 kocka ezt hasznalja
@@ -248,6 +259,7 @@ namespace Szeminarium1
 
                         float lepes = 1.1f; //kocka el 1 szoval 0.1 res marad
                         models[i] = Matrix4x4.CreateTranslation(x * lepes, y * lepes, z * lepes);
+                        inSlice[i] = (y == 1);
                         i++;
                     }
             Gl.BindVertexArray(0);
@@ -255,8 +267,39 @@ namespace Szeminarium1
 
         }
 
+        private static Vector3 CameraDirection()
+        {
+            return new Vector3(MathF.Cos(pitch) * MathF.Cos(yaw), MathF.Sin(pitch), MathF.Cos(pitch) * MathF.Sin(yaw));
+        }
+
+        private static void Keyboard_KeyDown(IKeyboard kb, Key key, int code)
+        {
+            if (sliceAngle != sliceTarget) return; //amig forog nem indul uj forgatas
+            if (key == Key.Space) sliceTarget += MathF.PI / 2f;
+            if (key == Key.Backspace) sliceTarget -= MathF.PI / 2f;
+        }
+
         private static void GraphicWindow_Update(double deltaTime)
         {
+            float dt = (float)deltaTime;
+            Vector3 dir = CameraDirection();
+            Vector3 right = Vector3.Normalize(Vector3.Cross(dir, Vector3.UnitY));
+            //a nyilakkal mozgatom a kamerat
+            //dt-vel szorzok hogy ne fuggjon a gep sebessegetol
+            if (keyboard.IsKeyPressed(Key.Up)) camPos += dir * 3f * dt;
+            if (keyboard.IsKeyPressed(Key.Down)) camPos -= dir * 3f * dt;
+            if (keyboard.IsKeyPressed(Key.Right)) camPos += right * 3f * dt;
+            if (keyboard.IsKeyPressed(Key.Left)) camPos -= right * 3f * dt;
+
+            if (keyboard.IsKeyPressed(Key.D)) yaw += 1.5f * dt;
+            if (keyboard.IsKeyPressed(Key.A)) yaw -= 1.5f * dt;
+            if (keyboard.IsKeyPressed(Key.W)) pitch += 1.5f * dt;
+            if (keyboard.IsKeyPressed(Key.S)) pitch -= 1.5f * dt;
+            pitch = Math.Clamp(pitch, -1.5f, 1.5f);
+
+            float step = 2f * dt;
+            if (sliceAngle < sliceTarget) sliceAngle = MathF.Min(sliceAngle + step, sliceTarget);
+            if (sliceAngle > sliceTarget) sliceAngle = MathF.Max(sliceAngle - step, sliceTarget);
         }
 
         private static unsafe void GraphicWindow_Render(double deltaTime)
@@ -266,12 +309,22 @@ namespace Szeminarium1
 
             Gl.UseProgram(program);
             CheckError("Useprogram");
+            Vector3 dir = CameraDirection();
+            Matrix4x4 view = Matrix4x4.CreateLookAt(camPos, camPos + dir, Vector3.UnitY);
+            //minden kepkockanal ujraszamolom a kamerat mert kozben mozoghatott
+            Gl.UniformMatrix4(Gl.GetUniformLocation(program, "uView"), 1, false, (float*)&view);
+
+            Matrix4x4 sliceRot = Matrix4x4.CreateRotationY(sliceAngle);
+            Matrix4x4 identity = Matrix4x4.Identity;
 
             for (int i = 0; i < 27; i++)
             {
                 Matrix4x4 model = models[i];
                 Gl.UniformMatrix4(Gl.GetUniformLocation(program, "uModel"), 1, false, (float*)&model);
 
+                Matrix4x4 slice = inSlice[i] ? sliceRot : identity;
+                Gl.UniformMatrix4(Gl.GetUniformLocation(program, "uSlice"), 1, false, (float*)&slice);
+                //ha a kocka a felso szeletben van megkapja a forgatast ha nem akkor egysegmatrixot ami nem mozditja el
                 Gl.BindVertexArray(vaos[i]);
                 Gl.DrawElements(GLEnum.Triangles, indexCount, GLEnum.UnsignedInt, null);
             }
