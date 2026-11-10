@@ -1,0 +1,60 @@
+# Visual Studio / .NET .gitignore
+
+# Visual Studio cache / beallitasok (.suo, .vsidx, futdcache, DocumentLayout.json ...)
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# Build kimenet (dll-ek, exe-k, libSDL2 stb. innen jonnek)
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+[Ll]og/
+[Ll]ogs/
+out/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+!**/packages/build/
+project.lock.json
+project.fragment.lock.json
+*.nuget.props
+*.nuget.targets
+
+# Rider / VS Code (ha valaha mast hasznalnal)
+.idea/
+.vscode/
+
+# Egyeb ideiglenes fajlok
+*.tmp
+*.cache
+*.log
+*.pdb
+*.ilk
+*.obj
+*.iobj
+*.ipdb
+*.tlog
+*.vspscc
+*.vssscc
+*.pidb
+*.svclog
+*.scc
+TestResults/
+[Tt]est[Rr]esult*/
+
+# Windows / macOS szemet
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
