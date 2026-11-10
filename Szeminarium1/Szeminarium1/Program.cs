@@ -1,5 +1,6 @@
 ﻿using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
+using System.Numerics;
 
 namespace Szeminarium1
 {
@@ -11,17 +12,25 @@ namespace Szeminarium1
 
         private static uint program;
 
+        private static uint[] vaos = new uint[27];
+        private static Matrix4x4[] models = new Matrix4x4[27];
+        private static uint indexCount;
+
         private static readonly string VertexShaderSource = @"
         #version 330 core
         layout (location = 0) in vec3 vPos;
 		layout (location = 1) in vec4 vCol;
+        
+        uniform mat4 uModel;
+        uniform mat4 uView;
+        uniform mat4 uProjection;
 
 		out vec4 outCol;
         
         void main()
         {
 			outCol = vCol;
-            gl_Position = vec4(vPos.x, vPos.y, vPos.z, 1.0);
+            gl_Position = uProjection * uView * uModel * vec4(vPos.x, vPos.y, vPos.z, 1.0);
         }
         ";
 
@@ -41,7 +50,7 @@ namespace Szeminarium1
         static void Main(string[] args)
         {
             WindowOptions windowOptions = WindowOptions.Default;
-            windowOptions.Title = "1-2 - kocka";
+            windowOptions.Title = "2-1 - 3D kocka";
             windowOptions.Size = new Silk.NET.Maths.Vector2D<int>(500, 500);
 
             graphicWindow = Window.Create(windowOptions);
@@ -66,11 +75,8 @@ namespace Szeminarium1
                 throw new Exception($"hiba itt: {where}");
         }
 
-        private static void GraphicWindow_Load()
+        private static unsafe void GraphicWindow_Load()
         {
-            // egszeri beallitasokat
-            //Console.WriteLine("Loaded");
-
             Gl = graphicWindow.CreateOpenGL();
 
             Gl.ClearColor(System.Drawing.Color.White);
@@ -105,130 +111,173 @@ namespace Szeminarium1
             Gl.DeleteShader(vshader);
             Gl.DeleteShader(fshader);
             CheckError("Shaderek torlese");
-        }
 
-        private static void GraphicWindow_Update(double deltaTime)
-        {
-            // NO GL
-            // make it threadsave
-            //Console.WriteLine($"Update after {deltaTime} [s]");
-        }
+            //melyseg teszt ami a kozelebbi lap takarja a tavolabbit
+            Gl.Enable(EnableCap.DepthTest);
 
-        private static unsafe void GraphicWindow_Render(double deltaTime)
-        {
-            //Console.WriteLine($"Render after {deltaTime} [s]");
-
-            Gl.Clear(ClearBufferMask.ColorBufferBit);
-            CheckError("Clear");
-
-            uint vao = Gl.GenVertexArray();
-            Gl.BindVertexArray(vao);
-            CheckError("vao letrehozas");
-
-            //ha atteszem a floatot double a kod nem fordul le
-            //Cannot convert type 'System.Span<double>' to 'System.ReadOnlySpan<float>'
-
-            //ha kitorlok egy csucsot a kod lefordul, hibat nem kapok de a haromszog ofc eltorzul
-            //mert az osszes utana jovo csucs elcsuszik
+            //kamera es projekcio fix ertekkel
+            Gl.UseProgram(program);
+            Vector3 kameraHely = new Vector3(8f, 5f, 4f);
+            Matrix4x4 view = Matrix4x4.CreateLookAt(kameraHely, Vector3.Zero, Vector3.UnitY);
+            Matrix4x4 projection = Matrix4x4.CreatePerspectiveFieldOfView(MathF.PI / 4f, 1f, 0.1f, 100f);
+            Gl.UniformMatrix4(Gl.GetUniformLocation(program, "uView"), 1, false, (float*)&view);
+            Gl.UniformMatrix4(Gl.GetUniformLocation(program, "uProjection"), 1, false, (float*)&projection);
+            CheckError("kamera es projekcio");
+            //egy kis kocka modellje 6 lap x 4 csucs azaz mind a 27 kocka ezt hasznalja
             float[] vertexArray = new float[] {
-                0.0f, 0.1f, 0.0f,
-                0.5f, 0.4f, 0.0f,
-                 0.0f, 0.6f, 0.0f,
-                 -0.5f, 0.4f, 0.0f,
+                //felso
+                -0.5f,  0.5f,  0.5f,
+                 0.5f,  0.5f,  0.5f,
+                 0.5f,  0.5f, -0.5f,
+                -0.5f,  0.5f, -0.5f,
 
-                 -0.5f, 0.4f, 0.0f,
-                  0.0f, 0.1f, 0.0f,
-                  0.0f, -0.6f, 0.0f,
-                 -0.5f, -0.3f, 0.0f,
+                //elulso
+                -0.5f,  0.5f,  0.5f,
+                -0.5f, -0.5f,  0.5f,
+                 0.5f, -0.5f,  0.5f,
+                 0.5f,  0.5f,  0.5f,
 
-                 0.0f, 0.1f, 0.0f,
-                 0.5f, 0.4f, 0.0f,
-                 0.5f, -0.3f, 0.0f,
-                 0.0f, -0.6f, 0.0f,
+                //bal
+                -0.5f,  0.5f,  0.5f,
+                -0.5f,  0.5f, -0.5f,
+                -0.5f, -0.5f, -0.5f,
+                -0.5f, -0.5f,  0.5f,
 
+                //also
+                -0.5f, -0.5f,  0.5f,
+                 0.5f, -0.5f,  0.5f,
+                 0.5f, -0.5f, -0.5f,
+                -0.5f, -0.5f, -0.5f,
+
+                //hatso
+                 0.5f,  0.5f, -0.5f,
+                -0.5f,  0.5f, -0.5f,
+                -0.5f, -0.5f, -0.5f,
+                 0.5f, -0.5f, -0.5f,
+
+                //jobb
+                 0.5f,  0.5f,  0.5f,
+                 0.5f,  0.5f, -0.5f,
+                 0.5f, -0.5f, -0.5f,
+                 0.5f, -0.5f,  0.5f,
             };
 
-            //ha kihagyok egy sort/oszlopot, azon a helyen fekete lesz,
-            //definialatlan viselkedes, nem fix mindig fekete
-            //ha 1.0fre teszek egy full sort, azon a helyen feher lesz
-            float[] colorArray = new float[] {
-                0.2f, 0.8f, 0.1f, 1.0f,
-                0.2f, 0.8f, 0.1f, 1.0f,
-                0.2f, 0.8f, 0.1f, 1.0f,
-                0.2f, 0.8f, 0.1f, 1.0f,
-
-                0.2f, 0.4f, 0.4f, 1f,
-                0.2f, 0.4f, 0.4f, 1f,
-                0.2f, 0.4f, 0.4f, 1f,
-                0.2f, 0.4f, 0.4f, 1f,
-
-                0.2f, 0.4f, 1f, 1f,
-                0.2f, 0.4f, 1f, 1f,
-                0.2f, 0.4f, 1f, 1f,
-                0.2f, 0.4f, 1f, 1f
+            float[][] faceColors = new float[][] {
+                new float[] { 0.5f, 0.7f, 0.0f, 1.0f}, //felso
+                new float[] { 1.0f, 0.5f, 0.0f, 1.0f }, // elulso
+                new float[] {1.0f, 1.0f, 1.0f, 1.0f  }, // bal
+                new float[] { 1.0f, 1.0f, 0.5f, 1.0f }, // also
+                new float[] { 1.0f, 0.5f, 0.5f, 1.0f }, // hatso
+                new float[] { 0.0f, 0.5f, 1.0f, 1.0f }, // jobb
             };
+            float[] insideColor = new float[] { 0.15f, 0.15f, 0.15f, 1.0f }; //belso lapok
 
-            //ha egy indexet kicserelek egy olyanra ami nem letezik akkor torzul a haromszog,
-            //mert egy masik pontba huzza
-            //pl 5 index ami nem oszthato 3mal -> a csonka utolso haromszog elmarad
-            uint[] indexArray = new uint[] { 
+            uint[] indexArray = new uint[] {
                 0, 1, 2,
                 0, 2, 3,
 
-                4,5,6,
-                4,6,7,
+                4, 5, 6,
+                4, 6, 7,
 
-                8,9,10,
-                8,10,11
+                8, 9, 10,
+                8, 10, 11,
+
+                12, 13, 14,
+                12, 14, 15,
+
+                16, 17, 18,
+                16, 18, 19,
+
+                20, 21, 22,
+                20, 22, 23
             };
+            indexCount = (uint)indexArray.Length;
 
-
+            // kozos pozicio buffer: egyszer toltjuk fel, mind a 27 vao ezt hasznalja
             uint vertices = Gl.GenBuffer();
-            Gl.BindBuffer(GLEnum.ArrayBuffer, vertices); //ha ezt torlom a kod lefut, de full feher kepernyo, nincs rajzolas
-            //ha felcserelem az elso kettot akkor is lefut de akkor is full feher kepernyo
+            Gl.BindBuffer(GLEnum.ArrayBuffer, vertices);
             Gl.BufferData(GLEnum.ArrayBuffer, (ReadOnlySpan<float>)vertexArray.AsSpan(), GLEnum.StaticDraw);
-            //ha torlom a bufferdatat, nem rajzol semmit mert ures a buffer
-            Gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, null);
-            //ha 3 helyett 2ot irok a GPU kettesevel olvassa a koordinatakat vagyis az alakzat szetesik
-            Gl.EnableVertexAttribArray(0); //ha  felcserlem a vertexAttribPointerrel nem tortenik semmi
-            //mert az egyik egy flaget allit, a masik a bufferbol olvas es ezek fuggetlenek egymastol
-            //ha torlom teljesen a poziciok nem jutnak el a shaderhez es nem latszik semmi
-            //es ha 0 helyett 100at irok ami invalid value lefut de nem ad hibat es az abra is szetesik
-            CheckError("pozi buffer (location 0)");
-
-            uint colors = Gl.GenBuffer();
-            Gl.BindBuffer(GLEnum.ArrayBuffer, colors);
-            Gl.BufferData(GLEnum.ArrayBuffer, (ReadOnlySpan<float>)colorArray.AsSpan(), GLEnum.StaticDraw);
-            Gl.VertexAttribPointer(1, 4, VertexAttribPointerType.Float, false, 0, null);
-            Gl.EnableVertexAttribArray(1);
-            //ha EnableVertexAttribArray(2) teszek az 1 helyett akkor a szin attributum kikapcsolva marad
-            //es fekete lesz az alakzat
-            //ha torlom teljesen akkor is fekete lesz mert nem kapcsolodik be
-            CheckError("Szin buffer (location 1)");
-
 
             uint indices = Gl.GenBuffer();
             Gl.BindBuffer(GLEnum.ElementArrayBuffer, indices);
             Gl.BufferData(GLEnum.ElementArrayBuffer, (ReadOnlySpan<uint>)indexArray.AsSpan(), GLEnum.StaticDraw);
+            CheckError("kozos bufferek");
 
-            Gl.BindBuffer(GLEnum.ArrayBuffer, 0);
+            //27 kis kocka ahol x, y, z = -1, 0, 1
+            int i = 0;
+            for (int x = -1; x <= 1; x++)
+                for (int y = -1; y <= 1; y++)
+                    for (int z = -1; z <= 1; z++)
+                    {
+                        vaos[i] = Gl.GenVertexArray();
+                        Gl.BindVertexArray(vaos[i]);
+                        CheckError("vao letrehozas");
+
+                        Gl.BindBuffer(GLEnum.ArrayBuffer, vertices);
+                        Gl.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, null);
+                        Gl.EnableVertexAttribArray(0);
+                        CheckError("pozi buffer (location 0)");
+
+                        bool[] kivulVan = new bool[] { y == 1, z == 1, x == -1, y == -1, z == -1, x == 1 };
+                        float[] colorArray = new float[6 * 4 * 4];
+                        for (int face = 0; face < 6; face++)
+                        {
+                            for (int vertex = 0; vertex < 4; vertex++)
+                            {
+                                int hely = (face * 4 + vertex) * 4;
+                                for (int c = 0; c < 4; c++)
+                                {
+                                    if (kivulVan[face])
+                                        colorArray[hely + c] = faceColors[face][c];
+                                    else
+                                        colorArray[hely + c] = insideColor[c];
+                                }
+                            }
+                        }
+
+                        uint colors = Gl.GenBuffer();
+                        Gl.BindBuffer(GLEnum.ArrayBuffer, colors);
+                        Gl.BufferData(GLEnum.ArrayBuffer, (ReadOnlySpan<float>)colorArray.AsSpan(), GLEnum.StaticDraw);
+                        Gl.VertexAttribPointer(1, 4, VertexAttribPointerType.Float, false, 0, null);
+                        Gl.EnableVertexAttribArray(1);
+
+                        CheckError("Szin buffer (location 1)");
+
+                        //a kozos index buffert kotom be ami a vao allapotanak resze
+                        Gl.BindBuffer(GLEnum.ElementArrayBuffer, indices);
+
+                        float lepes = 1.1f; //kocka el 1 szoval 0.1 res marad
+                        models[i] = Matrix4x4.CreateTranslation(x * lepes, y * lepes, z * lepes);
+                        i++;
+                    }
+            Gl.BindVertexArray(0);
+            CheckError("27 vao letrehozasa");
+
+        }
+
+        private static void GraphicWindow_Update(double deltaTime)
+        {
+        }
+
+        private static unsafe void GraphicWindow_Render(double deltaTime)
+        {
+            Gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            CheckError("Clear");
 
             Gl.UseProgram(program);
-            //ha ezt torlom nem rajzolodik ki semmi
             CheckError("Useprogram");
-            
-            Gl.DrawElements(GLEnum.Triangles, (uint)indexArray.Length, GLEnum.UnsignedInt, null); // we used element buffer
-            //h kicserleem a BindBufferrel akkor nem lesz index buffer es vagy osszeomlik a kep vagy torzul
-            CheckError("Draw elements");
-            Gl.BindBuffer(GLEnum.ElementArrayBuffer, 0);
-            Gl.BindVertexArray(vao);
 
-            // always unbound the vertex buffer first, so no halfway results are displayed by accident
-            Gl.DeleteBuffer(vertices);
-            Gl.DeleteBuffer(colors);
-            Gl.DeleteBuffer(indices);
-            Gl.DeleteVertexArray(vao);
-            CheckError("takaritas");
+            for (int i = 0; i < 27; i++)
+            {
+                Matrix4x4 model = models[i];
+                Gl.UniformMatrix4(Gl.GetUniformLocation(program, "uModel"), 1, false, (float*)&model);
+
+                Gl.BindVertexArray(vaos[i]);
+                Gl.DrawElements(GLEnum.Triangles, indexCount, GLEnum.UnsignedInt, null);
+            }
+            Gl.BindVertexArray(0);
+            CheckError("Draw elements");
         }
+
     }
 }
