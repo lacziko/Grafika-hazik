@@ -41,7 +41,7 @@ namespace Szeminarium1
         static void Main(string[] args)
         {
             WindowOptions windowOptions = WindowOptions.Default;
-            windowOptions.Title = "1. szeminárium - háromszög";
+            windowOptions.Title = "1-2 - kocka";
             windowOptions.Size = new Silk.NET.Maths.Vector2D<int>(500, 500);
 
             graphicWindow = Window.Create(windowOptions);
@@ -131,20 +131,41 @@ namespace Szeminarium1
             //ha kitorlok egy csucsot a kod lefordul, hibat nem kapok de a haromszog ofc eltorzul
             //mert az osszes utana jovo csucs elcsuszik
             float[] vertexArray = new float[] {
-                -0.5f, -0.5f, 0.0f,
-                +0.5f, -0.5f, 0.0f,
-                 0.0f, +0.5f, 0.0f,
-                 1f, 1f, 0f
+                0.0f, 0.1f, 0.0f,
+                0.5f, 0.4f, 0.0f,
+                 0.0f, 0.6f, 0.0f,
+                 -0.5f, 0.4f, 0.0f,
+
+                 -0.5f, 0.4f, 0.0f,
+                  0.0f, 0.1f, 0.0f,
+                  0.0f, -0.6f, 0.0f,
+                 -0.5f, -0.3f, 0.0f,
+
+                 0.0f, 0.1f, 0.0f,
+                 0.5f, 0.4f, 0.0f,
+                 0.5f, -0.3f, 0.0f,
+                 0.0f, -0.6f, 0.0f,
+
             };
 
             //ha kihagyok egy sort/oszlopot, azon a helyen fekete lesz,
             //definialatlan viselkedes, nem fix mindig fekete
             //ha 1.0fre teszek egy full sort, azon a helyen feher lesz
             float[] colorArray = new float[] {
-                1.0f, 1.0f, 0.5f, 1.0f,
-                1.0f, 0.5f, 1.0f, 1.0f,
-                1.0f, 1.0f, 1.0f, 1.0f,
-                0.5f, 1.0f, 1.0f, 1.0f
+                0.2f, 0.8f, 0.1f, 1.0f,
+                0.2f, 0.8f, 0.1f, 1.0f,
+                0.2f, 0.8f, 0.1f, 1.0f,
+                0.2f, 0.8f, 0.1f, 1.0f,
+
+                0.2f, 0.4f, 0.4f, 1f,
+                0.2f, 0.4f, 0.4f, 1f,
+                0.2f, 0.4f, 0.4f, 1f,
+                0.2f, 0.4f, 0.4f, 1f,
+
+                0.2f, 0.4f, 1f, 1f,
+                0.2f, 0.4f, 1f, 1f,
+                0.2f, 0.4f, 1f, 1f,
+                0.2f, 0.4f, 1f, 1f
             };
 
             //ha egy indexet kicserelek egy olyanra ami nem letezik akkor torzul a haromszog,
@@ -152,7 +173,13 @@ namespace Szeminarium1
             //pl 5 index ami nem oszthato 3mal -> a csonka utolso haromszog elmarad
             uint[] indexArray = new uint[] { 
                 0, 1, 2,
-                2, 1, 3
+                0, 2, 3,
+
+                4,5,6,
+                4,6,7,
+
+                8,9,10,
+                8,10,11
             };
 
 
