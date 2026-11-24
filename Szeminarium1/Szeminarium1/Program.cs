@@ -18,9 +18,8 @@ namespace GrafikaSzeminarium
 
         private static ImGuiController imGuiController;
 
-        private static ModelObjectDescriptor deszka;       //normalis meroleges a lapra
-        private static ModelObjectDescriptor deszkaDontott; //normalis a szeleken 10 fokkal kifele dol
-
+        private static ModelObjectDescriptor cube;
+        private static ModelObjectDescriptor diamondCube;
         private static CameraDescriptor camera = new CameraDescriptor();
 
         private static CubeArrangementModel cubeArrangementModel = new CubeArrangementModel();
@@ -38,12 +37,18 @@ namespace GrafikaSzeminarium
 
         private static float shininess = 50;
 
+        private static Vector3 ambientStrength = new Vector3(0.1f, 0.1f, 0.1f);
+        private static Vector3 diffuseStrength = new Vector3(0.3f, 0.3f, 0.3f);
+        private static Vector3 specularStrength = new Vector3(0.6f, 0.6f, 0.6f);
+        private static Vector3 ambientColor = new Vector3(1f, 1f, 1f);
+        private static Vector3 topFaceColor = new Vector3(1f, 0f, 0f);
+
         private static uint program;
 
         static void Main(string[] args)
         {
             WindowOptions windowOptions = WindowOptions.Default;
-            windowOptions.Title = "Lab 3-1 hazi";
+            windowOptions.Title = "hazi lab 3-2";
             windowOptions.Size = new Silk.NET.Maths.Vector2D<int>(500, 500);
 
             graphicWindow = Window.Create(windowOptions);
@@ -58,8 +63,8 @@ namespace GrafikaSzeminarium
 
         private static void GraphicWindow_Closing()
         {
-            deszka.Dispose();
-            deszkaDontott.Dispose();
+            cube.Dispose();
+            diamondCube.Dispose();
             Gl.DeleteProgram(program);
         }
 
@@ -84,8 +89,8 @@ namespace GrafikaSzeminarium
 
             imGuiController = new ImGuiController(Gl, graphicWindow, inputContext);
 
-            deszka = ModelObjectDescriptor.CreatePlank(Gl, false);
-            deszkaDontott = ModelObjectDescriptor.CreatePlank(Gl, true);
+            cube = ModelObjectDescriptor.CreateCube(Gl);
+            diamondCube = ModelObjectDescriptor.CreateCube(Gl);
 
             Gl.ClearColor(System.Drawing.Color.White);
 
@@ -189,10 +194,13 @@ namespace GrafikaSzeminarium
             Gl.UseProgram(program);
 
             SetUniform3(LightColorVariableName, new Vector3(1f, 1f, 1f));
-            //a feny a kamerabol vilagit, igy mindig kivulrol jon
-            SetUniform3(LightPositionVariableName, new Vector3(camera.Position.X, camera.Position.Y, camera.Position.Z));
+            SetUniform3(LightPositionVariableName, new Vector3(0f, 1.2f, 0f));
             SetUniform3(ViewPositionVariableName, new Vector3(camera.Position.X, camera.Position.Y, camera.Position.Z));
             SetUniform1(ShinenessVariableName, shininess);
+            SetUniform3("uAmbientStrength", ambientStrength);
+            SetUniform3("uDiffuseStrength", diffuseStrength);
+            SetUniform3("uSpecularStrength", specularStrength);
+            SetUniform3("uAmbientColor", ambientColor);
 
             var viewMatrix = Matrix4X4.CreateLookAt(camera.Position, camera.Target, camera.UpVector);
             SetMatrix(viewMatrix, ViewMatrixVariableName);
@@ -201,35 +209,46 @@ namespace GrafikaSzeminarium
             SetMatrix(projectionMatrix, ProjectionMatrixVariableName);
 
 
-            ///a bal dezsan latszanak az elek, mert egy deszkan belul mindenhol ugyanaz a normalis
-            ///a jobbon a szomszedos deszkak kozos elen ugyanaz a normalis, ezert sima kerek hatasu
+            var modelMatrixCenterCube = Matrix4X4.CreateScale((float)cubeArrangementModel.CenterCubeScale) * Matrix4X4.CreateRotationY(0.6f) * Matrix4X4.CreateRotationX(0.4f);
+            SetModelMatrix(modelMatrixCenterCube);
+            DrawModelObject(cube);
 
-
-            //bal oldalt a merőleges normalisos, jobb oldalt a dontott normalisos dezsa
-            DrawBarrel(deszka, -3.5f);
-            DrawBarrel(deszkaDontott, 3.5f);
+            Matrix4X4<float> diamondScale = Matrix4X4.CreateScale(0.25f);
+            Matrix4X4<float> rotx = Matrix4X4.CreateRotationX((float)Math.PI / 4f);
+            Matrix4X4<float> rotz = Matrix4X4.CreateRotationZ((float)Math.PI / 4f);
+            Matrix4X4<float> roty = Matrix4X4.CreateRotationY((float)cubeArrangementModel.DiamondCubeLocalAngle);
+            Matrix4X4<float> trans = Matrix4X4.CreateTranslation(1f, 1f, 0f);
+            Matrix4X4<float> rotGlobalY = Matrix4X4.CreateRotationY((float)cubeArrangementModel.DiamondCubeGlobalYAngle);
+            Matrix4X4<float> dimondCubeModelMatrix = diamondScale * rotx * rotz * roty * trans * rotGlobalY;
+            SetModelMatrix(dimondCubeModelMatrix);
+            DrawModelObject(diamondCube);
 
             //ImGuiNET.ImGui.ShowDemoWindow();
             ImGuiNET.ImGui.Begin("Lighting", ImGuiNET.ImGuiWindowFlags.AlwaysAutoResize | ImGuiNET.ImGuiWindowFlags.NoCollapse);
             ImGuiNET.ImGui.SliderFloat("Shininess", ref shininess, 5, 100);
+            ImGuiNET.ImGui.SliderFloat3("Ambient", ref ambientStrength, 0, 1);
+            ImGuiNET.ImGui.SliderFloat3("Diffuse", ref diffuseStrength, 0, 1);
+            ImGuiNET.ImGui.SliderFloat3("Specular", ref specularStrength, 0, 1);
+            ImGuiNET.ImGui.SliderFloat("Hatterfeny R", ref ambientColor.X, 0, 1);
+            ImGuiNET.ImGui.SliderFloat("Hatterfeny G", ref ambientColor.Y, 0, 1);
+            ImGuiNET.ImGui.SliderFloat("Hatterfeny B", ref ambientColor.Z, 0, 1);
+            if (ImGuiNET.ImGui.ColorEdit3("Felso lap", ref topFaceColor))
+            {
+                float[] topColors = new float[16];
+                for (int i = 0; i < 4; i++)
+                {
+                    topColors[i * 4 + 0] = topFaceColor.X;
+                    topColors[i * 4 + 1] = topFaceColor.Y;
+                    topColors[i * 4 + 2] = topFaceColor.Z;
+                    topColors[i * 4 + 3] = 1f;
+                }
+                Gl.BindBuffer(GLEnum.ArrayBuffer, cube.Colors);
+                Gl.BufferSubData(GLEnum.ArrayBuffer, 0, (ReadOnlySpan<float>)topColors.AsSpan());
+                Gl.BindBuffer(GLEnum.ArrayBuffer, 0);
+            }
             ImGuiNET.ImGui.End();
 
             imGuiController.Render();
-        }
-
-        private static void DrawBarrel(ModelObjectDescriptor deszkaModell, float xEltolas)
-        {
-            float szog = (float)(2 * Math.PI / ModelObjectDescriptor.DeszkaDarab); //20 fok ennyivel fordul a kovetkezo deszka
-            //derekszogu haromszog: tan(10 fok) = (szelesseg/2) / tavolsag
-            float tavolsag = (ModelObjectDescriptor.DeszkaSzelesseg / 2) / (float)Math.Tan(szog / 2);
-
-            for (int k = 0; k < ModelObjectDescriptor.DeszkaDarab; k++)
-            {
-                //kitolom a kozeppontbol, elforgatom a helyere, majd a dezsat oldalra tolom
-                var modelMatrix = Matrix4X4.CreateTranslation(0f, 0f, tavolsag) * Matrix4X4.CreateRotationY(k * szog) * Matrix4X4.CreateTranslation(xEltolas, 0f, 0f);
-                SetModelMatrix(modelMatrix);
-                DrawModelObject(deszkaModell);
-            }
         }
 
         private static unsafe void SetModelMatrix(Matrix4X4<float> modelMatrix)

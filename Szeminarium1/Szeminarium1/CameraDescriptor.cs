@@ -5,7 +5,7 @@ namespace Szeminarium
 {
     internal class CameraDescriptor
     {
-        public double DistanceToOrigin { get; private set; } = 10;
+        public double DistanceToOrigin { get; private set; } = 2;
 
         public double AngleToZYPlane { get; private set; } = 0;
 

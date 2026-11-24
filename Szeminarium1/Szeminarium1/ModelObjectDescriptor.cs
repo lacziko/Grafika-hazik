@@ -21,47 +21,107 @@ namespace GrafikaSzeminarium
 
         private GL Gl;
 
-        public const int DeszkaDarab = 18;
-        public const float DeszkaSzelesseg = 1f;
-        public const float DeszkaMagassag = 2f;
-
-        public unsafe static ModelObjectDescriptor CreatePlank(GL Gl, bool dontottNormal)
+        public unsafe static ModelObjectDescriptor CreateCube(GL Gl)
         {
             uint vao = Gl.GenVertexArray();
             Gl.BindVertexArray(vao);
 
-            //10 fok: a szomszedos deszkak 20 fokra vannak, ennek a fele
-            float felSzog = (float)(Math.PI / DeszkaDarab);
-            //meroleges eseten (0,0,1)
-            ///dontott eseten a szeleken 10 fokkal kifele
-            float nx = dontottNormal ? (float)Math.Sin(felSzog) : 0f;
-            float nz = dontottNormal ? (float)Math.Cos(felSzog) : 1f;
-            float w = DeszkaSzelesseg / 2;
-            float h = DeszkaMagassag / 2;
-
-            // counter clockwise is front facing, pozicio + normalis
+            // counter clockwise is front facing
             float[] vertexArray = new float[] {
-                -w, -h, 0f, -nx, 0f, nz,
-                 w, -h, 0f,  nx, 0f, nz,
-                 w,  h, 0f,  nx, 0f, nz,
-                -w,  h, 0f, -nx, 0f, nz,
+                // top face
+                -0.5f, 0.5f, 0.5f, 0f, 1f, 0f,
+                0.5f, 0.5f, 0.5f, 0f, 1f, 0f,
+                0.5f, 0.5f, -0.5f, 0f, 1f, 0f,
+                -0.5f, 0.5f, -0.5f, 0f, 1f, 0f, 
+
+                // front face
+                -0.5f, 0.5f, 0.5f, 0f, 0f, 1f,
+                -0.5f, -0.5f, 0.5f, 0f, 0f, 1f,
+                0.5f, -0.5f, 0.5f, 0f, 0f, 1f,
+                0.5f, 0.5f, 0.5f, 0f, 0f, 1f,
+
+                // left face
+                -0.5f, 0.5f, 0.5f, -1f, 0f, 0f,
+                -0.5f, 0.5f, -0.5f, -1f, 0f, 0f,
+                -0.5f, -0.5f, -0.5f, -1f, 0f, 0f,
+                -0.5f, -0.5f, 0.5f, -1f, 0f, 0f,
+
+                // bottom face
+                -0.5f, -0.5f, 0.5f, 0f, -1f, 0f,
+                0.5f, -0.5f, 0.5f,0f, -1f, 0f,
+                0.5f, -0.5f, -0.5f,0f, -1f, 0f,
+                -0.5f, -0.5f, -0.5f,0f, -1f, 0f,
+
+                // back face
+                0.5f, 0.5f, -0.5f, 0f, 0f, -1f,
+                -0.5f, 0.5f, -0.5f,0f, 0f, -1f,
+                -0.5f, -0.5f, -0.5f,0f, 0f, -1f,
+                0.5f, -0.5f, -0.5f,0f, 0f, -1f,
+
+                // right face
+                0.5f, 0.5f, 0.5f, 1f, 0f, 0f,
+                0.5f, 0.5f, -0.5f,1f, 0f, 0f,
+                0.5f, -0.5f, -0.5f,1f, 0f, 0f,
+                0.5f, -0.5f, 0.5f,1f, 0f, 0f,
             };
 
             float[] colorArray = new float[] {
-                0.6f, 0.4f, 0.2f, 1.0f,
-                0.6f, 0.4f, 0.2f, 1.0f,
-                0.6f, 0.4f, 0.2f, 1.0f,
-                0.6f, 0.4f, 0.2f, 1.0f,
+                1.0f, 0.0f, 0.0f, 1.0f,
+                1.0f, 0.0f, 0.0f, 1.0f,
+                1.0f, 0.0f, 0.0f, 1.0f,
+                1.0f, 0.0f, 0.0f, 1.0f,
+
+                0.0f, 1.0f, 0.0f, 1.0f,
+                0.0f, 1.0f, 0.0f, 1.0f,
+                0.0f, 1.0f, 0.0f, 1.0f,
+                0.0f, 1.0f, 0.0f, 1.0f,
+
+                0.0f, 0.0f, 1.0f, 1.0f,
+                0.0f, 0.0f, 1.0f, 1.0f,
+                0.0f, 0.0f, 1.0f, 1.0f,
+                0.0f, 0.0f, 1.0f, 1.0f,
+
+                1.0f, 0.0f, 1.0f, 1.0f,
+                1.0f, 0.0f, 1.0f, 1.0f,
+                1.0f, 0.0f, 1.0f, 1.0f,
+                1.0f, 0.0f, 1.0f, 1.0f,
+
+                0.0f, 1.0f, 1.0f, 1.0f,
+                0.0f, 1.0f, 1.0f, 1.0f,
+                0.0f, 1.0f, 1.0f, 1.0f,
+                0.0f, 1.0f, 1.0f, 1.0f,
+
+                1.0f, 1.0f, 0.0f, 1.0f,
+                1.0f, 1.0f, 0.0f, 1.0f,
+                1.0f, 1.0f, 0.0f, 1.0f,
+                1.0f, 1.0f, 0.0f, 1.0f,
             };
 
             uint[] indexArray = new uint[] {
                 0, 1, 2,
-                0, 2, 3
+                0, 2, 3,
+
+                4, 5, 6,
+                4, 6, 7,
+
+                8, 9, 10,
+                10, 11, 8,
+
+                12, 14, 13,
+                12, 15, 14,
+
+                17, 16, 19,
+                17, 19, 18,
+
+                20, 22, 21,
+                20, 23, 22
             };
 
             uint vertices = Gl.GenBuffer();
             Gl.BindBuffer(GLEnum.ArrayBuffer, vertices);
             Gl.BufferData(GLEnum.ArrayBuffer, (ReadOnlySpan<float>)vertexArray.AsSpan(), GLEnum.StaticDraw);
+            // 0 is position
+            // 2 is normals
             uint offsetPos = 0;
             uint offsetNormals = offsetPos + 3 * sizeof(float);
             uint vertexSize = offsetNormals + 3 * sizeof(float);
@@ -74,6 +134,7 @@ namespace GrafikaSzeminarium
             uint colors = Gl.GenBuffer();
             Gl.BindBuffer(GLEnum.ArrayBuffer, colors);
             Gl.BufferData(GLEnum.ArrayBuffer, (ReadOnlySpan<float>)colorArray.AsSpan(), GLEnum.StaticDraw);
+            // 1 is color
             Gl.VertexAttribPointer(1, 4, VertexAttribPointerType.Float, false, 0, null);
             Gl.EnableVertexAttribArray(1);
             Gl.BindBuffer(GLEnum.ArrayBuffer, 0);
@@ -84,6 +145,7 @@ namespace GrafikaSzeminarium
             Gl.BindBuffer(GLEnum.ElementArrayBuffer, 0);
 
             return new ModelObjectDescriptor() { Vao = vao, Vertices = vertices, Colors = colors, Indices = indices, IndexArrayLength = (uint)indexArray.Length, Gl = Gl };
+
         }
 
         protected virtual void Dispose(bool disposing)
@@ -92,9 +154,8 @@ namespace GrafikaSzeminarium
             {
                 if (disposing)
                 {
-
                 }
-                // always unbound the vertex buffer first, so no halfway results are displayed by accident
+                 // always unbound the vertex buffer first, so no halfway results are displayed by accident
                 Gl.DeleteBuffer(Vertices);
                 Gl.DeleteBuffer(Colors);
                 Gl.DeleteBuffer(Indices);
